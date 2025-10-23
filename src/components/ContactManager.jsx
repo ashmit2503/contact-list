@@ -6,6 +6,7 @@ import ContactDetailModal from './ContactDetailModal'
 import EditContactModal from './EditContactModal'
 import { contactsAPI } from '../utils/api'
 import { parseVCF } from '../utils/helpers'
+import { countryCodes } from '../utils/constants'
 
 export default function ContactManager() {
   const [contacts, setContacts] = useState([])
@@ -30,13 +31,26 @@ export default function ContactManager() {
       setLoading(true)
       setError(null)
       const fetchedContacts = await contactsAPI.getAll()
-      const transformedContacts = fetchedContacts.map(contact => ({
-        id: contact.id,
-        name: contact.name,
-        phone: contact.phone,
-        countryCode: contact.country_code,
-        email: contact.email
-      }))
+      const transformedContacts = fetchedContacts.map(contact => {
+        const phoneDigits = String(contact.phone || '').replace(/\D/g, '')
+        const candidates = countryCodes
+          .map(c => ({ code: c.code, d: c.code.replace(/\D/g, '') }))
+          .filter(x => phoneDigits.startsWith(x.d))
+          .sort((a,b) => b.d.length - a.d.length)
+        const inferredCode = candidates[0]?.code
+        const countryCode = contact.country_code || inferredCode || '+91'
+        const ccDigits = String(countryCode).replace(/\D/g, '')
+        const displayPhone = ccDigits && !phoneDigits.startsWith(ccDigits)
+          ? `${countryCode} ${phoneDigits}`
+          : (contact.phone || `${countryCode} ${phoneDigits}`)
+        return {
+          id: contact.id,
+          name: contact.name,
+          phone: displayPhone,
+          countryCode,
+          email: contact.email
+        }
+      })
       setContacts(transformedContacts)
     } catch (err) {
       console.error('Failed to fetch contacts:', err)
@@ -58,7 +72,7 @@ export default function ContactManager() {
         id: newContact.id,
         name: newContact.name,
         phone: newContact.phone,
-        countryCode: newContact.countryCode,
+        countryCode: newContact.country_code,
         email: newContact.email
       }
       setContacts([transformedContact, ...contacts])
@@ -196,7 +210,14 @@ export default function ContactManager() {
         return
       }
 
-      const result = await contactsAPI.bulkCreate(parsedContacts)
+      const normalizedForServer = parsedContacts.map(c => ({
+        name: c.name,
+        countryCode: c.countryCode,
+        phone: `${c.countryCode} ${String(c.phone || '').replace(/\D/g, '')}`,
+        email: c.email || null
+      }))
+
+      const result = await contactsAPI.bulkCreate(normalizedForServer)
       
       const transformedContacts = result.contacts.map(contact => ({
         id: contact.id,
@@ -254,9 +275,10 @@ export default function ContactManager() {
 
   const handleUpdateContact = async (updatedContactData) => {
     try {
+      const combinedPhone = `${updatedContactData.countryCode} ${String(updatedContactData.phone || '').replace(/\D/g, '')}`
       const updatedContact = await contactsAPI.update(updatedContactData.id, {
         name: updatedContactData.name,
-        phone: updatedContactData.phone,
+        phone: combinedPhone,
         countryCode: updatedContactData.countryCode,
         email: updatedContactData.email
       })

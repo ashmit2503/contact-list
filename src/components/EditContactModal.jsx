@@ -10,13 +10,45 @@ export default function EditContactModal({ contact, show, onClose, onUpdate }) {
   const dropdownRef = useRef(null)
   const buttonRef = useRef(null)
 
+  const resolveCountry = (rawCode, rawPhone) => {
+    const codeStr = String(rawCode || '').trim()
+    const byCode = countryCodes.find(c => c.code === codeStr)
+    if (byCode) return byCode
+    const digits = codeStr.replace(/\D/g, '')
+    if (digits) {
+      const byDigits = countryCodes.find(c => c.code.replace(/\D/g, '') === digits)
+      if (byDigits) return byDigits
+    }
+    const byIso = countryCodes.find(c => String(c.country || '').toUpperCase() === codeStr.toUpperCase())
+    if (byIso) return byIso
+    const phoneDigits = String(rawPhone || '').replace(/\D/g, '')
+    if (phoneDigits) {
+      const match = countryCodes
+        .map(c => ({ c, d: c.code.replace(/\D/g, '') }))
+        .filter(x => phoneDigits.startsWith(x.d))
+        .sort((a,b) => b.d.length - a.d.length)[0]
+      if (match) return match.c
+    }
+    return countryCodes[0]
+  }
+
   useEffect(() => {
     if (contact && show) {
-      const phoneWithoutCode = contact.phone.replace(contact.countryCode, '').trim()
+      const country = resolveCountry(contact.countryCode, contact.phone)
+      const targetLen = country.length || 10
+      const ccDigits = String(country.code || '').replace(/\D/g, '')
+      const phoneDigits = String(contact.phone || '').replace(/\D/g, '')
+      let phoneWithoutCode = phoneDigits
+      if (ccDigits && phoneDigits.startsWith(ccDigits)) {
+        phoneWithoutCode = phoneDigits.slice(ccDigits.length)
+      }
+      if (phoneWithoutCode.length !== targetLen && phoneDigits.length >= targetLen) {
+        phoneWithoutCode = phoneDigits.slice(-targetLen)
+      }
       setFormData({
         name: contact.name,
         phone: phoneWithoutCode,
-        countryCode: contact.countryCode,
+        countryCode: country.code,
         email: contact.email || ''
       })
       setErrors({})
@@ -40,9 +72,7 @@ export default function EditContactModal({ contact, show, onClose, onUpdate }) {
     }
   }, [showCountryDropdown])
 
-  const getSelectedCountry = () => {
-    return countryCodes.find(c => c.code === formData.countryCode) || countryCodes[0]
-  }
+  const getSelectedCountry = () => resolveCountry(formData.countryCode, contact?.phone)
 
   const validateContact = () => {
     const newErrors = {}
