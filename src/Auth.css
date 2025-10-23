@@ -171,4 +171,8 @@
   .auth-card h2 {
     font-size: 1.5rem;
   }
+  .form-group input,
+  .submit-btn {
+    min-height: 44px;
+  }
 }

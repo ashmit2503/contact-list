@@ -47,3 +47,10 @@ body {
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+@media (max-width: 640px) {
+  body { font-size: clamp(14px, 3.5vw, 16px); }
+  button, input { min-height: 44px; }
+}

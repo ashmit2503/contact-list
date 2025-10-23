@@ -1469,8 +1469,10 @@
     row-gap: 0.5rem;
   }
   .action-buttons {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .contact-card {
     flex-direction: column;
@@ -1492,6 +1494,18 @@
 @media (max-width: 640px) {
   .navbar {
     padding: 0.5rem 0.75rem;
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+  }
+  .navbar-brand {
+    flex: 1 1 100%;
+    order: 0;
+  }
+  .navbar-menu {
+    flex: 1 1 100%;
+    order: 1;
+    display: flex;
+    justify-content: space-between;
   }
   .theme-toggle {
     width: 36px;
@@ -1514,6 +1528,14 @@
   }
   .selection-bubble {
     left: 0.75rem;
+    width: 24px;
+    height: 24px;
+  }
+  .email-link { word-break: break-all; }
+  .country-dropdown {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
   }
 }
 
@@ -1554,5 +1576,10 @@
   .country-code-button {
     min-width: 88px;
   }
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-cancel, .btn-logout { width: 100%; }
 }
 
